@@ -1,38 +1,50 @@
 ﻿import os
+import json
+import numpy as np
 from dotenv import load_dotenv
 from fastembed import TextEmbedding
-import chromadb
 from groq import Groq
 
 load_dotenv()
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
-client = chromadb.PersistentClient(path="./chroma_db")
-collection = client.get_or_create_collection(name="college_info")
+
+with open("embeddings.json", "r") as f:
+    knowledge_data = json.load(f)
+
+
+def cosine_similarity(a, b):
+    a = np.array(a)
+    b = np.array(b)
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
 def retrieve(question, top_n=2):
     question_embedding = list(model.embed([question]))[0].tolist()
-    results = collection.query(
-        query_embeddings=[question_embedding],
-        n_results=top_n
-    )
-    return results["documents"][0]
+
+    scored = []
+    for item in knowledge_data:
+        score = cosine_similarity(question_embedding, item["embedding"])
+        scored.append((score, item["text"]))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    top_matches = [text for score, text in scored[:top_n]]
+    return top_matches
 
 
 def ask_ai(question, context_chunks):
     context = "\n\n".join(context_chunks)
 
     prompt = f"""You are a helpful assistant for Nehru Arts and Science College (NASC).
-Answer the student's question using ONLY the information below.
-If the information doesn't answer the question, say you don't have that detail and suggest contacting the college office.
+Answer the student''s question using ONLY the information below.
+If the information doesn''t answer the question, say you don''t have that detail and suggest contacting the college office.
 Keep your answer short and friendly, like a chat message.
 
 College Information:
 {context}
 
-Student's Question: {question}
+Student''s Question: {question}
 
 Answer:"""
 
