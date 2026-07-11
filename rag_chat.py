@@ -1,21 +1,19 @@
-import os
+﻿import os
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 import chromadb
 from groq import Groq
 
-# Load the secret API key from .env
 load_dotenv()
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-# Load embedding model + database (same as before)
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
 client = chromadb.PersistentClient(path="./chroma_db")
 collection = client.get_or_create_collection(name="college_info")
 
 
 def retrieve(question, top_n=2):
-    question_embedding = model.encode(question).tolist()
+    question_embedding = list(model.embed([question]))[0].tolist()
     results = collection.query(
         query_embeddings=[question_embedding],
         n_results=top_n
@@ -54,7 +52,6 @@ def get_answer(question):
     return answer
 
 
-# Test it
 if __name__ == "__main__":
     q = "how much does it cost to study here"
     print(f"Question: {q}\n")
