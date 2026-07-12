@@ -1,6 +1,6 @@
 ﻿fastapi
 uvicorn
-fastembed
+requests
 numpy
 groq
 python-dotenv

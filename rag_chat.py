@@ -1,17 +1,28 @@
 ﻿import os
 import json
+import requests
 import numpy as np
 from dotenv import load_dotenv
-from fastembed import TextEmbedding
 from groq import Groq
 
 load_dotenv()
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+HF_TOKEN = os.getenv("HF_TOKEN")
 
-model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+HF_API_URL = "https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction"
 
 with open("embeddings.json", "r") as f:
     knowledge_data = json.load(f)
+
+
+def get_embedding(text):
+    response = requests.post(
+        HF_API_URL,
+        headers={"Authorization": f"Bearer {HF_TOKEN}"},
+        json={"inputs": text, "options": {"wait_for_model": True}}
+    )
+    result = response.json()
+    return result
 
 
 def cosine_similarity(a, b):
@@ -21,7 +32,8 @@ def cosine_similarity(a, b):
 
 
 def retrieve(question, top_n=2):
-    question_embedding = list(model.embed([question]))[0].tolist()
+    question_embedding = get_embedding(question)
+    print("DEBUG:", question_embedding)
 
     scored = []
     for item in knowledge_data:
