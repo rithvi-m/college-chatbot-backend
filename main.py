@@ -1,11 +1,10 @@
-from fastapi import FastAPI
+﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from rag_chat import get_answer
 
 app = FastAPI()
 
-# Allow your website (running on a different address) to call this API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,3 +23,9 @@ def home():
 def chat(request: ChatRequest):
     answer = get_answer(request.question)
     return {"answer": answer}
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
